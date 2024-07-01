@@ -21,7 +21,7 @@ class AppState extends ChangeNotifier {
   AppState() {
     _selectedTime = TimeOfDay.now();
 
-    _selectedDay = DaysOfWeek.montag;
+    _selectedDay = DaysOfWeek.monday;
     _myWeek = DaysOfWeek.fullWeek(_selectedDay);
     allShops = ShopsData().allShops;
     _selectedShop = allShops[0];
@@ -44,7 +44,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  //About NOW
   //Check is the shop is open now.
   bool isOpenNow() {
     if (getCurrentSlot() != null) {
@@ -52,6 +51,22 @@ class AppState extends ChangeNotifier {
     } else {
       return false;
     }
+  }
+
+//Check if the shop is open between today and tomorrow
+  bool staysOpenUntilNextDay(TimeSlot slot) {
+    var nextSlot = getNextFromSlot(slot);
+    return (slot.end == 1440 &&
+        nextSlot.day == DaysOfWeek.tomorrow(slot.day) &&
+        nextSlot.start == 0);
+  }
+
+//Check if the shop was open between yesterday and today
+  bool wasAlreadyOpen(TimeSlot slot) {
+    var previousSlot = getPreviousFromSlot(slot);
+    return (slot.start == 0 &&
+        previousSlot.day == DaysOfWeek.yesterday(slot.day) &&
+        previousSlot.end == 1440);
   }
 
   //If the shop is open now, return the current Slot
@@ -69,16 +84,6 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-//Return the schedule of the week ordered
-  List<TimeSlot> getFullWeek() {
-    List<TimeSlot> fullSchedule = [];
-
-    for (final day in myWeek) {
-      fullSchedule.addAll(getFullDay(day));
-    }
-    return fullSchedule;
-  }
-
 //Return the schedule of a given day ordered
   List<TimeSlot> getFullDay(DaysOfWeek daysOfWeek) {
     //Get all opening slots for the giving day
@@ -91,19 +96,25 @@ class AppState extends ChangeNotifier {
     return dailyOpeningTimeSlots;
   }
 
-  TimeSlot getNextOpeningSlot(DaysOfWeek daysOfWeek, int time) {
-    return getAllOpeningTimeSlotsOrderedByDayAndTime(daysOfWeek, time)[0];
+//Return the schedule of the week ordered starting with the selected day
+  List<TimeSlot> getFullWeek() {
+    List<TimeSlot> fullSchedule = [];
+
+    for (final day in myWeek) {
+      fullSchedule.addAll(getFullDay(day));
+    }
+    return fullSchedule;
   }
 
-  List<TimeSlot> getAllOpeningTimeSlotsOrderedByDayAndTime(
-      DaysOfWeek daysOfWeek, int time) {
+//Return the schedule of the week ordered starting with the selected day AND time
+  List<TimeSlot> getFullWeekStartingAt() {
     var fullSchedule = getFullWeek();
 
     //Put the passed timeSlots at the end of the list
     var numberOfSlotsToPush = 0;
     for (final slot in fullSchedule) {
       //if is past
-      if (slot.day == daysOfWeek && slot.start < time) {
+      if (slot.day == _selectedDay && slot.start < _selectedTime.intValue()) {
         numberOfSlotsToPush = numberOfSlotsToPush + 1;
       } else {
         break;
@@ -117,6 +128,32 @@ class AppState extends ChangeNotifier {
     }
 
     return fullSchedule;
+  }
+
+  TimeSlot getNextOpeningSlot() {
+    return getFullWeekStartingAt()[0];
+  }
+
+  TimeSlot getNextFromSlot(TimeSlot slot) {
+    final fullWeek = getFullWeek();
+    var index = fullWeek.indexWhere((e) => e == slot);
+
+    if (index == fullWeek.length - 1) {
+      return fullWeek[0];
+    } else {
+      return fullWeek[index + 1];
+    }
+  }
+
+  TimeSlot getPreviousFromSlot(TimeSlot slot) {
+    final fullWeek = getFullWeek();
+    var index = fullWeek.indexWhere((e) => e == slot);
+
+    if (index == 0) {
+      return fullWeek[fullWeek.length - 1];
+    } else {
+      return fullWeek[index - 1];
+    }
   }
 
   //Retrun a list to describe the schedule of the day
@@ -133,6 +170,9 @@ class AppState extends ChangeNotifier {
         response.add(description);
       }
     }
+    if (response.isEmpty) {
+      response.add("Geschlossen");
+    }
     return response;
   }
 
@@ -140,29 +180,29 @@ class AppState extends ChangeNotifier {
     var result = getDailyScheduleDescriptions(givenDay);
     var text = '';
     for (var t in result) {
-      text = "$text $t\n";
+      text = "$text$t\n ";
     }
     if (text.isNotEmpty) {
-      return text.substring(0, text.length - 1);
+      return text.substring(0, text.length - 2);
     } else {
       return text;
     }
   }
 
   String? getDescription(TimeSlot slot) {
-    //var nextSlot = getNextOpeningSlot(slot.day, slot.start);
-
     //Open all day case
     if (slot.start == 0 && slot.end == 1440) {
       return 'Ganztags geöfnet';
 
       //Stay open case
-/*     } else if (slot.end == 1440 && nextSlot.start == 0) {
+    } else if (staysOpenUntilNextDay(slot)) {
+      var nextSlot = getNextFromSlot(slot);
       String opening = slot.start.toTimeString();
       String closing = nextSlot.end.toTimeString();
       return '$opening - $closing';
-    } else if (slot.start == 0) {
-      return null; */
+      //Was already open
+    } else if (wasAlreadyOpen(slot)) {
+      return null;
       //Normal case
     } else {
       String opening = slot.start.toTimeString();
@@ -177,7 +217,17 @@ class AppState extends ChangeNotifier {
 
     //Open case
     if (currentSlot != null) {
-      if (currentSlot.end - _selectedTime.intValue() <= 60) {
+      //if it stays open untill tomorrow
+      if (staysOpenUntilNextDay(currentSlot)) {
+        final nextSlot = getNextFromSlot(currentSlot);
+        if (1440 - _selectedTime.intValue() + nextSlot.end < 60) {
+          return "schließt um ${nextSlot.end.toTimeString()}";
+        } else {
+          return "";
+        }
+      }
+      //if it closes today
+      else if (currentSlot.end - _selectedTime.intValue() <= 60) {
         return "schließt um ${currentSlot.end.toTimeString()}";
       }
       //Close case
@@ -190,9 +240,7 @@ class AppState extends ChangeNotifier {
           return "öffnet um ${slot.start.toTimeString()}";
         }
       }
-
-      var nextOpening =
-          getNextOpeningSlot(_selectedDay, _selectedTime.intValue());
+      var nextOpening = getNextOpeningSlot();
       if (nextOpening.day != _selectedDay) {
         //Next opening another day
         return "öffnet ${nextOpening.day.label} um ${nextOpening.start.toTimeString()}";

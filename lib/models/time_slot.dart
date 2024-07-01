@@ -5,19 +5,15 @@ class TimeSlot {
   int start;
   int end;
 
-  TimeSlot(
-      {required this.day,
-      required this.start,
-      required this.end});
+  TimeSlot({required this.day, required this.start, required this.end});
 
-  bool isOpenNow(DaysOfWeek currentDay, int currentTime) {
-    //Check the day
-    if (currentDay == day) {
-      //Check the time
-      if (currentTime >= start && currentTime < end) {
-        return true;
-      }
-    }
-    return false;
-  }
+  @override
+  bool operator ==(Object other) =>
+      other is TimeSlot &&
+      start == other.start &&
+      end == other.end &&
+      day == other.day;
+
+  @override
+  int get hashCode => Object.hash(start, end, day);
 }

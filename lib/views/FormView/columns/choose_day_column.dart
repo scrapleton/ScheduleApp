@@ -24,7 +24,7 @@ class ChooseDayColumn extends StatelessWidget {
           },
           inputDecorationTheme: const InputDecorationTheme(isDense: true),
           initialSelection: appState.selectedDay,
-          dropdownMenuEntries: DaysOfWeek.fullWeek(DaysOfWeek.montag)
+          dropdownMenuEntries: DaysOfWeek.fullWeek(DaysOfWeek.monday)
               .map<DropdownMenuEntry<DaysOfWeek>>((DaysOfWeek e) {
             return DropdownMenuEntry<DaysOfWeek>(value: e, label: e.label);
           }).toList(),

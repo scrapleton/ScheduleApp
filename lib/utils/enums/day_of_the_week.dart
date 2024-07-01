@@ -1,11 +1,11 @@
 enum DaysOfWeek {
-  sonntag('Sonntag', 0),
-  montag('Montag', 1),
-  dienstag('Dienstag', 2),
-  mittwoch('Mittwoch', 3),
-  donnerstag('Donnerstag', 4),
-  freitag('Freitag', 5),
-  samstag('Samstag', 6);
+  sunday('Sonntag', 0),
+  monday('Montag', 1),
+  tuesday('Dienstag', 2),
+  wednesday('Mittwoch', 3),
+  thursday('Donnerstag', 4),
+  friday('Freitag', 5),
+  saturday('Samstag', 6);
 
   const DaysOfWeek(this.label, this.intValue);
 
@@ -14,6 +14,22 @@ enum DaysOfWeek {
 
   //intValue is the standard value in many langages and is also used to sort the Days Of Week
   final int intValue;
+
+  static DaysOfWeek tomorrow(DaysOfWeek today) {
+    if (today.intValue == DaysOfWeek.values.length - 1) {
+      return DaysOfWeek.values[0];
+    } else {
+      return DaysOfWeek.values[today.intValue + 1];
+    }
+  }
+
+  static DaysOfWeek yesterday(DaysOfWeek today) {
+    if (today.intValue == 0) {
+      return DaysOfWeek.values[DaysOfWeek.values.length - 1];
+    } else {
+      return DaysOfWeek.values[today.intValue - 1];
+    }
+  }
 
   //Get all Day Of Week ordered, and starting by a given day.
   // Montag => [.Montag, .Dienstag, .Mittwoch, .Donnerstag, .Freitag, .Samstag, . Sonntag]

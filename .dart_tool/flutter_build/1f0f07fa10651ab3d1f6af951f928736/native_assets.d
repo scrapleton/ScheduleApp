@@ -1,0 +1,1 @@
+ /Users/awy/Documents/Flutter/schedule_app/.dart_tool/flutter_build/1f0f07fa10651ab3d1f6af951f928736/native_assets.yaml: 
